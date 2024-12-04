@@ -3,32 +3,37 @@ package usecase
 import (
 	"context"
 
-	"github.com/hpaes/go-api-project/src/core/domain/logger"
-	domain_repository "github.com/hpaes/go-api-project/src/core/domain/repository"
+	"github.com/hpaes/go-api-project/src/infrastructure/logger"
+	"github.com/hpaes/go-api-project/src/infrastructure/repository"
 	"github.com/pkg/errors"
 )
 
-type GetAccountUseCase struct {
-	accountRepository domain_repository.AccountRepository
-	logger            logger.LogHandler
-}
+type (
+	GetAccount interface {
+		Execute(ctx context.Context, accountId string) (*GetAccountOutput, error)
+	}
+	getAccount struct {
+		accountRepository repository.AccountRepository
+		logger            logger.LogHandler
+	}
+)
 
-func NewAccountUseCase(accountRepository domain_repository.AccountRepository, logger logger.LogHandler) *GetAccountUseCase {
-	return &GetAccountUseCase{
+func NewAccountUseCase(accountRepository repository.AccountRepository, logger logger.LogHandler) GetAccount {
+	return &getAccount{
 		accountRepository: accountRepository,
 		logger:            logger,
 	}
 }
 
-func (ga *GetAccountUseCase) Execute(ctx context.Context, accountId string) (*GetAccountOutput, error) {
+func (ga *getAccount) Execute(ctx context.Context, accountId string) (*GetAccountOutput, error) {
 	ga.logger.LogInformation("Executing GetAccountUseCase for accountId: %s", accountId)
 	account, err := ga.accountRepository.GetById(ctx, accountId)
 	if err != nil {
 		ga.logger.LogError("Error getting account: %v", err)
 		return nil, errors.Wrap(err, "error getting account by id")
 	}
-	if account == nil {
-		ga.logger.LogError("Account not found")
+	if account.AccountId == "" {
+		ga.logger.LogInformation("Account not found")
 		return nil, nil
 	}
 	ga.logger.LogInformation("Successfully retrieved account: %s", accountId)

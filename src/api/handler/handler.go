@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/hpaes/go-api-project/src/core/domain/logger"
 	"github.com/hpaes/go-api-project/src/core/errors"
+	"github.com/hpaes/go-api-project/src/infrastructure/logger"
 )
 
 func HandleError(w http.ResponseWriter, err error, logger logger.LogHandler) {
@@ -19,6 +19,9 @@ func HandleError(w http.ResponseWriter, err error, logger logger.LogHandler) {
 	case errors.InvalidRequestPayloadErr:
 		status = http.StatusBadRequest
 		http.Error(w, "Invalid request payload", status)
+	case errors.InvalidQueryParamPayloadErr:
+		status = http.StatusBadRequest
+		http.Error(w, "Invalid query param", status)
 	default:
 		status = http.StatusInternalServerError
 		http.Error(w, "An internal server error occured", status)

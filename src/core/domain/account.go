@@ -15,82 +15,41 @@ type Account struct {
 	IsDriver    bool                  `json:"isDriver"`
 }
 
-func newAccount(accountId string, name valueObjects.Name, cpf valueObjects.Cpf, email valueObjects.Email, carPlate valueObjects.CarPlate, isPassenger bool, isDriver bool) *Account {
+func NewAccount(accountId string, name string, cpf string, email string, carPlate string, isPassenger bool, isDriver bool) (*Account, error) {
+
+	if accountId == "" {
+		accountId = uuid.New().String()
+	}
+
+	nameObj, err := valueObjects.NewName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	cpfObj, err := valueObjects.NewCpf(cpf)
+	if err != nil {
+		return nil, err
+	}
+
+	emailObj, err := valueObjects.NewEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	carPlateObj, err := valueObjects.NewCarPlate(carPlate)
+	if err != nil {
+		return nil, err
+	}
+
 	account := &Account{
 		AccountId:   accountId,
-		Name:        name,
-		Cpf:         cpf,
-		Email:       email,
-		CarPlate:    carPlate,
+		Name:        *nameObj,
+		Cpf:         *cpfObj,
+		Email:       *emailObj,
+		CarPlate:    *carPlateObj,
 		IsPassenger: isPassenger,
 		IsDriver:    isDriver,
 	}
 
-	return account
-}
-
-func CreateAccount(name string, cpf string, email string, carPlate string, isPassenger bool, isDriver bool) (*Account, error) {
-	accountId := uuid.New().String()
-
-	nameObj, err := valueObjects.NewName(name)
-	if err != nil {
-		return nil, err
-	}
-
-	cpfObj, err := valueObjects.NewCpf(cpf)
-	if err != nil {
-		return nil, err
-	}
-
-	emailObj, err := valueObjects.NewEmail(email)
-	if err != nil {
-		return nil, err
-	}
-
-	carPlateObj, err := valueObjects.NewCarPlate(carPlate)
-	if err != nil {
-		return nil, err
-	}
-
-	return newAccount(
-		accountId,
-		*nameObj,
-		*cpfObj,
-		*emailObj,
-		*carPlateObj,
-		isPassenger,
-		isDriver,
-	), nil
-}
-
-func RestoreAccount(accountId string, name string, cpf string, email string, carPlate string, isPassenger bool, isDriver bool) (*Account, error) {
-	nameObj, err := valueObjects.NewName(name)
-	if err != nil {
-		return nil, err
-	}
-
-	cpfObj, err := valueObjects.NewCpf(cpf)
-	if err != nil {
-		return nil, err
-	}
-
-	emailObj, err := valueObjects.NewEmail(email)
-	if err != nil {
-		return nil, err
-	}
-
-	carPlateObj, err := valueObjects.NewCarPlate(carPlate)
-	if err != nil {
-		return nil, err
-	}
-
-	return newAccount(
-		accountId,
-		*nameObj,
-		*cpfObj,
-		*emailObj,
-		*carPlateObj,
-		isPassenger,
-		isDriver,
-	), nil
+	return account, nil
 }
