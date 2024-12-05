@@ -45,6 +45,7 @@ func TestSaveAccountRepository(t *testing.T) {
 func TestAccountRepository_GetById(t *testing.T) {
 	connection := database.NewMockDatabaseConnection()
 	repo := NewAccountRepository(connection)
+	mockRows := new(database.MockRows)
 
 	expectedAccount := &domain.Account{
 		AccountId: "123",
@@ -64,21 +65,22 @@ func TestAccountRepository_GetById(t *testing.T) {
 		IsDriver:    false,
 	}
 
-	rows := []database.Row{
-		{
-			Columns: map[string]interface{}{
-				"account_id":   "123",
-				"name":         "John Doe",
-				"cpf":          "123.456.789-09",
-				"email":        "johnDoe@email.com",
-				"car_plate":    "ABC-1B34",
-				"is_passenger": true,
-				"is_driver":    false,
-			},
-		},
-	}
+	mockRows.On("Columns").Return([]string{"account_id", "name", "cpf", "email", "car_plate", "is_passenger", "is_driver"}, nil)
+	mockRows.On("Next").Return(true).Once()
+	mockRows.On("Next").Return(false)
+	mockRows.On("Scan", mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*bool"), mock.AnythingOfType("*bool")).Run(func(args mock.Arguments) {
+		*(args[0].(*string)) = "123"
+		*(args[1].(*string)) = "John Doe"
+		*(args[2].(*string)) = "123.456.789-09"
+		*(args[3].(*string)) = "johnDoe@email.com"
+		*(args[4].(*string)) = "ABC-1B34"
+		*(args[5].(*bool)) = true
+		*(args[6].(*bool)) = false
+	}).Return(nil)
+	mockRows.On("Err").Return(nil)
+	mockRows.On("Close").Return(nil)
 
-	connection.On("QueryWithContext", mock.Anything, mock.Anything, mock.Anything).Return(func() []database.Row { return rows }, nil)
+	connection.On("QueryWithContext", mock.Anything, mock.Anything, mock.Anything).Return(mockRows, nil)
 
 	ctx := context.TODO()
 	account, err := repo.GetById(ctx, "123")
@@ -117,21 +119,23 @@ func TestAccountRepository_GetByEmail(t *testing.T) {
 		IsDriver:    false,
 	}
 
-	rows := []database.Row{
-		{
-			Columns: map[string]interface{}{
-				"account_id":   "123",
-				"name":         "John Doe",
-				"cpf":          "123.456.789-09",
-				"email":        "johnDoe@email.com",
-				"car_plate":    "ABC-1B34",
-				"is_passenger": true,
-				"is_driver":    false,
-			},
-		},
-	}
+	mockRows := new(database.MockRows)
+	mockRows.On("Columns").Return([]string{"account_id", "name", "cpf", "email", "car_plate", "is_passenger", "is_driver"}, nil)
+	mockRows.On("Next").Return(true).Once()
+	mockRows.On("Next").Return(false)
+	mockRows.On("Scan", mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*bool"), mock.AnythingOfType("*bool")).Run(func(args mock.Arguments) {
+		*(args[0].(*string)) = "123"
+		*(args[1].(*string)) = "John Doe"
+		*(args[2].(*string)) = "123.456.789-09"
+		*(args[3].(*string)) = "johnDoe@email.com"
+		*(args[4].(*string)) = "ABC-1B34"
+		*(args[5].(*bool)) = true
+		*(args[6].(*bool)) = false
+	}).Return(nil)
+	mockRows.On("Err").Return(nil)
+	mockRows.On("Close").Return(nil)
 
-	connection.On("QueryWithContext", mock.Anything, mock.Anything, mock.Anything).Return(func() []database.Row { return rows }, nil)
+	connection.On("QueryWithContext", mock.Anything, mock.Anything, mock.Anything).Return(mockRows, nil)
 
 	ctx := context.TODO()
 	account, err := repo.GetByEmail(ctx, "johnDoe@email.com")

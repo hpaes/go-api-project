@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/hpaes/go-api-project/src/core/domain"
+	errorsPckg "github.com/hpaes/go-api-project/src/core/errors"
 	"github.com/hpaes/go-api-project/src/infrastructure/logger"
 	"github.com/hpaes/go-api-project/src/infrastructure/repository"
 	"github.com/pkg/errors"
@@ -55,7 +56,7 @@ func (su *signUp) Execute(ctx context.Context, input SignupInput) (*SignupOutput
 	}
 	if existingAccount != nil && existingAccount.AccountId != "" {
 		su.logger.LogError("Account already exists for email: %s", input.Email)
-		return nil, errors.New("account already exists")
+		return nil, errorsPckg.NewAccountAlreadyExistsErr(input.Email)
 	}
 
 	account, err := domain.NewAccount("", input.Name, input.Cpf, input.Email, input.CarPlate, input.IsPassenger, input.IsDriver)

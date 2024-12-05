@@ -42,7 +42,7 @@ func (sc *AccountController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	signupOutput, err := sc.su.Execute(r.Context(), input)
 	if err != nil {
-		handler.HandleError(w, errors.NewInternalServerErr("Error executing SignupUseCase", err), sc.logger)
+		handler.HandleError(w, err, sc.logger)
 		return
 	}
 

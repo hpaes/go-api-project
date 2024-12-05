@@ -10,9 +10,19 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PqAdapter struct {
-	connection *sql.DB
-}
+type (
+	Rows interface {
+		Columns() ([]string, error)
+		Next() bool
+		Scan(dest ...interface{}) error
+		Err() error
+		Close() error
+	}
+
+	PqAdapter struct {
+		connection *sql.DB
+	}
+)
 
 func NewPqAdapter() (*PqAdapter, error) {
 	connStr := os.Getenv("GO_DATABASE_URL")
@@ -34,7 +44,7 @@ func NewPqAdapter() (*PqAdapter, error) {
 	}, nil
 }
 
-func (p *PqAdapter) QueryWithContext(ctx context.Context, stmt string, args ...any) ([]Row, error) {
+func (p *PqAdapter) QueryWithContext(ctx context.Context, stmt string, args ...any) (Rows, error) {
 	preparedStmt, err := p.connection.PrepareContext(ctx, stmt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare statement: %w", err)
@@ -44,36 +54,7 @@ func (p *PqAdapter) QueryWithContext(ctx context.Context, stmt string, args ...a
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute statement: %w", err)
 	}
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get columns: %w", err)
-	}
-
-	var results []Row
-	for rows.Next() {
-		columnPointers := make([]interface{}, len(columns))
-		columnValues := make([]interface{}, len(columns))
-		for i := range columnPointers {
-			columnPointers[i] = &columnValues[i]
-		}
-
-		if err := rows.Scan(columnPointers...); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		rowMap := make(map[string]interface{})
-		for i, colName := range columns {
-			rowMap[colName] = columnValues[i]
-		}
-		results = append(results, Row{Columns: rowMap})
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
-	}
-
-	return results, nil
+	return rows, nil
 }
 
 func (p *PqAdapter) ExecWithContext(ctx context.Context, stmt string, args ...any) error {

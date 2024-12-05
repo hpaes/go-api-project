@@ -4,13 +4,12 @@ import (
 	"context"
 
 	"github.com/hpaes/go-api-project/src/core/domain"
-	"github.com/hpaes/go-api-project/src/core/domain/valueObjects"
 	"github.com/hpaes/go-api-project/src/infrastructure/database"
 )
 
 type (
 	accountRepository struct {
-		connection database.DatabaseConnection
+		connection database.DatabaseAdapter
 	}
 	AccountRepository interface {
 		GetById(ctx context.Context, id string) (*domain.Account, error)
@@ -19,7 +18,7 @@ type (
 	}
 )
 
-func NewAccountRepository(connection database.DatabaseConnection) AccountRepository {
+func NewAccountRepository(connection database.DatabaseAdapter) AccountRepository {
 	return &accountRepository{
 		connection: connection,
 	}
@@ -40,23 +39,19 @@ func (ar *accountRepository) GetById(ctx context.Context, id string) (*domain.Ac
 	if err != nil {
 		return &domain.Account{}, err
 	}
-	if rows == nil {
+	defer rows.Close()
+
+	if !rows.Next() {
 		return &domain.Account{}, nil
 	}
 
-	row := rows[0]
-
-	account := &domain.Account{
-		AccountId:   string(row.Columns["account_id"].([]uint8)),
-		Name:        valueObjects.Name{Value: row.Columns["name"].(string)},
-		Cpf:         valueObjects.Cpf{Value: row.Columns["cpf"].(string)},
-		Email:       valueObjects.Email{Value: row.Columns["email"].(string)},
-		CarPlate:    valueObjects.CarPlate{Value: row.Columns["car_plate"].(string)},
-		IsPassenger: row.Columns["is_passenger"].(bool),
-		IsDriver:    row.Columns["is_driver"].(bool),
+	var accountId, name, cpf, emailValue, carPlate string
+	var isPassenger, isDriver bool
+	if err := rows.Scan(&accountId, &name, &cpf, &emailValue, &carPlate, &isPassenger, &isDriver); err != nil {
+		return &domain.Account{}, err
 	}
 
-	acc, err := domain.NewAccount(account.AccountId, account.Name.Value, account.Cpf.Value, account.Email.Value, account.CarPlate.Value, account.IsPassenger, account.IsDriver)
+	acc, err := domain.NewAccount(accountId, name, cpf, emailValue, carPlate, isPassenger, isDriver)
 	if err != nil {
 		return &domain.Account{}, err
 	}
@@ -70,23 +65,19 @@ func (ar *accountRepository) GetByEmail(ctx context.Context, email string) (*dom
 	if err != nil {
 		return &domain.Account{}, err
 	}
-	if rows == nil {
+	defer rows.Close()
+
+	if !rows.Next() {
 		return &domain.Account{}, nil
 	}
 
-	row := rows[0]
-
-	account := &domain.Account{
-		AccountId:   string(row.Columns["account_id"].([]uint8)),
-		Name:        valueObjects.Name{Value: row.Columns["name"].(string)},
-		Cpf:         valueObjects.Cpf{Value: row.Columns["cpf"].(string)},
-		Email:       valueObjects.Email{Value: row.Columns["email"].(string)},
-		CarPlate:    valueObjects.CarPlate{Value: row.Columns["car_plate"].(string)},
-		IsPassenger: row.Columns["is_passenger"].(bool),
-		IsDriver:    row.Columns["is_driver"].(bool),
+	var accountId, name, cpf, emailValue, carPlate string
+	var isPassenger, isDriver bool
+	if err := rows.Scan(&accountId, &name, &cpf, &emailValue, &carPlate, &isPassenger, &isDriver); err != nil {
+		return &domain.Account{}, err
 	}
 
-	acc, err := domain.NewAccount(account.AccountId, account.Name.Value, account.Cpf.Value, account.Email.Value, account.CarPlate.Value, account.IsPassenger, account.IsDriver)
+	acc, err := domain.NewAccount(accountId, name, cpf, emailValue, carPlate, isPassenger, isDriver)
 	if err != nil {
 		return &domain.Account{}, err
 	}
