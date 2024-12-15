@@ -2,79 +2,152 @@ package repository
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/hpaes/go-api-project/src/core/domain"
+	"github.com/hpaes/go-api-project/src/core/domain/valueObjects"
 	"github.com/hpaes/go-api-project/src/infrastructure/database"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func randomEmail() string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return fmt.Sprintf("user%d@example.com", r.Int())
-}
+func TestSaveAccountRepository(t *testing.T) {
+	connection := database.NewMockDatabaseConnection()
+	repo := NewAccountRepository(connection)
 
-func setup(t *testing.T) (*database.PqAdapter, func()) {
-	databaseConnection, err := database.NewPqAdapter()
-	assert.NoError(t, err)
-
-	cleanup := func() {
-		err := databaseConnection.ExecWithContext(context.Background(), "DELETE FROM brq_golang.account")
-		assert.NoError(t, err)
+	account := &domain.Account{
+		AccountId: "1",
+		Name: valueObjects.Name{
+			Value: "John Doe",
+		},
+		Email: valueObjects.Email{
+			Value: "johnDoe@email.com",
+		},
+		Cpf: valueObjects.Cpf{
+			Value: "123.456.789-09",
+		},
+		CarPlate: valueObjects.CarPlate{
+			Value: "ABC-1B34",
+		},
+		IsPassenger: true,
+		IsDriver:    false,
 	}
 
-	return databaseConnection, cleanup
+	ctx := context.TODO()
+	connection.On("ExecWithContext", ctx, mock.Anything, mock.Anything).Return(nil)
+
+	err := repo.Save(ctx, account)
+
+	assert.NoError(t, err)
+	connection.AssertExpectations(t)
 }
 
-func TestSaveAccountRepository(t *testing.T) {
-	databaseConnection, cleanup := setup(t)
-	defer cleanup()
+func TestAccountRepository_GetById(t *testing.T) {
+	connection := database.NewMockDatabaseConnection()
+	repo := NewAccountRepository(connection)
+	mockRows := new(database.MockRows)
 
-	accountRepo := NewAccountRepository(databaseConnection)
-	email := randomEmail()
-	acc, err := domain.CreateAccount("John Doe", "123.456.789-09", email, "ABC-1B34", true, false)
+	expectedAccount := &domain.Account{
+		AccountId: "123",
+		Name: valueObjects.Name{
+			Value: "John Doe",
+		},
+		Email: valueObjects.Email{
+			Value: "johnDoe@email.com",
+		},
+		Cpf: valueObjects.Cpf{
+			Value: "123.456.789-09",
+		},
+		CarPlate: valueObjects.CarPlate{
+			Value: "ABC-1B34",
+		},
+		IsPassenger: true,
+		IsDriver:    false,
+	}
+
+	mockRows.On("Columns").Return([]string{"account_id", "name", "cpf", "email", "car_plate", "is_passenger", "is_driver"}, nil)
+	mockRows.On("Next").Return(true).Once()
+	mockRows.On("Next").Return(false)
+	mockRows.On("Scan", mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*bool"), mock.AnythingOfType("*bool")).Run(func(args mock.Arguments) {
+		*(args[0].(*string)) = "123"
+		*(args[1].(*string)) = "John Doe"
+		*(args[2].(*string)) = "123.456.789-09"
+		*(args[3].(*string)) = "johnDoe@email.com"
+		*(args[4].(*string)) = "ABC-1B34"
+		*(args[5].(*bool)) = true
+		*(args[6].(*bool)) = false
+	}).Return(nil)
+	mockRows.On("Err").Return(nil)
+	mockRows.On("Close").Return(nil)
+
+	connection.On("QueryWithContext", mock.Anything, mock.Anything, mock.Anything).Return(mockRows, nil)
+
+	ctx := context.TODO()
+	account, err := repo.GetById(ctx, "123")
+
 	assert.NoError(t, err)
-
-	ctx := context.Background()
-	t.Run("Save", func(t *testing.T) {
-		err := accountRepo.Save(ctx, acc)
-		assert.NoError(t, err)
-	})
+	assert.NotNil(t, account)
+	assert.Equal(t, expectedAccount.AccountId, account.AccountId)
+	assert.Equal(t, expectedAccount.Name, account.Name)
+	assert.Equal(t, expectedAccount.Email, account.Email)
+	assert.Equal(t, expectedAccount.Cpf, account.Cpf)
+	assert.Equal(t, expectedAccount.CarPlate, account.CarPlate)
+	assert.Equal(t, expectedAccount.IsPassenger, account.IsPassenger)
+	assert.Equal(t, expectedAccount.IsDriver, account.IsDriver)
+	connection.AssertExpectations(t)
 }
 
-func TestGetByEmailAccountRepository(t *testing.T) {
-	databaseConnection, cleanup := setup(t)
-	defer cleanup()
+func TestAccountRepository_GetByEmail(t *testing.T) {
+	connection := database.NewMockDatabaseConnection()
+	repo := NewAccountRepository(connection)
 
-	accountRepo := NewAccountRepository(databaseConnection)
-	email := randomEmail()
-	acc, err := domain.CreateAccount("John Doe", "123.456.789-09", email, "ABC-1B34", true, false)
-	assert.NoError(t, err)
-	err = accountRepo.Save(context.TODO(), acc)
-	assert.NoError(t, err)
+	expectedAccount := &domain.Account{
+		AccountId: "123",
+		Name: valueObjects.Name{
+			Value: "John Doe",
+		},
+		Email: valueObjects.Email{
+			Value: "johnDoe@email.com",
+		},
+		Cpf: valueObjects.Cpf{
+			Value: "123.456.789-09",
+		},
+		CarPlate: valueObjects.CarPlate{
+			Value: "ABC-1B34",
+		},
+		IsPassenger: true,
+		IsDriver:    false,
+	}
 
-	retrievedAcc, err := accountRepo.GetByEmail(context.TODO(), acc.Email.Value)
-	assert.NoError(t, err)
-	assert.NotNil(t, retrievedAcc)
-	assert.Equal(t, acc, retrievedAcc)
-}
+	mockRows := new(database.MockRows)
+	mockRows.On("Columns").Return([]string{"account_id", "name", "cpf", "email", "car_plate", "is_passenger", "is_driver"}, nil)
+	mockRows.On("Next").Return(true).Once()
+	mockRows.On("Next").Return(false)
+	mockRows.On("Scan", mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*string"), mock.AnythingOfType("*bool"), mock.AnythingOfType("*bool")).Run(func(args mock.Arguments) {
+		*(args[0].(*string)) = "123"
+		*(args[1].(*string)) = "John Doe"
+		*(args[2].(*string)) = "123.456.789-09"
+		*(args[3].(*string)) = "johnDoe@email.com"
+		*(args[4].(*string)) = "ABC-1B34"
+		*(args[5].(*bool)) = true
+		*(args[6].(*bool)) = false
+	}).Return(nil)
+	mockRows.On("Err").Return(nil)
+	mockRows.On("Close").Return(nil)
 
-func TestGetByIdAccountRepository(t *testing.T) {
-	databaseConnection, cleanup := setup(t)
-	defer cleanup()
+	connection.On("QueryWithContext", mock.Anything, mock.Anything, mock.Anything).Return(mockRows, nil)
 
-	accountRepo := NewAccountRepository(databaseConnection)
-	email := randomEmail()
-	acc, err := domain.CreateAccount("John Doe", "123.456.789-09", email, "ABC-1B34", true, false)
-	assert.NoError(t, err)
-	err = accountRepo.Save(context.TODO(), acc)
-	assert.NoError(t, err)
+	ctx := context.TODO()
+	account, err := repo.GetByEmail(ctx, "johnDoe@email.com")
 
-	retrievedAcc, err := accountRepo.GetById(context.TODO(), acc.AccountId)
 	assert.NoError(t, err)
-	assert.NotNil(t, retrievedAcc)
-	assert.Equal(t, acc, retrievedAcc)
+	assert.NotNil(t, account)
+	assert.Equal(t, expectedAccount.AccountId, account.AccountId)
+	assert.Equal(t, expectedAccount.Name, account.Name)
+	assert.Equal(t, expectedAccount.Email, account.Email)
+	assert.Equal(t, expectedAccount.Cpf, account.Cpf)
+	assert.Equal(t, expectedAccount.CarPlate, account.CarPlate)
+	assert.Equal(t, expectedAccount.IsPassenger, account.IsPassenger)
+	assert.Equal(t, expectedAccount.IsDriver, account.IsDriver)
+	connection.AssertExpectations(t)
 }

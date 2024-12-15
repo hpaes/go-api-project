@@ -1,4 +1,3 @@
-// Package database provides a PostgreSQL adapter for database operations.
 package database
 
 import (
@@ -11,9 +10,19 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PqAdapter struct {
-	connection *sql.DB
-}
+type (
+	Rows interface {
+		Columns() ([]string, error)
+		Next() bool
+		Scan(dest ...interface{}) error
+		Err() error
+		Close() error
+	}
+
+	PqAdapter struct {
+		connection *sql.DB
+	}
+)
 
 func NewPqAdapter() (*PqAdapter, error) {
 	connStr := os.Getenv("GO_DATABASE_URL")
@@ -35,14 +44,15 @@ func NewPqAdapter() (*PqAdapter, error) {
 	}, nil
 }
 
-func (p *PqAdapter) QueryWithContext(ctx context.Context, stmt string, args ...any) (*sql.Rows, error) {
+func (p *PqAdapter) QueryWithContext(ctx context.Context, stmt string, args ...any) (Rows, error) {
 	preparedStmt, err := p.connection.PrepareContext(ctx, stmt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to prepare statement: %w", err)
 	}
+	defer preparedStmt.Close()
 	rows, err := preparedStmt.QueryContext(ctx, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute statement: %w", err)
 	}
 	return rows, nil
 }
@@ -50,13 +60,13 @@ func (p *PqAdapter) QueryWithContext(ctx context.Context, stmt string, args ...a
 func (p *PqAdapter) ExecWithContext(ctx context.Context, stmt string, args ...any) error {
 	preparedStmt, err := p.connection.PrepareContext(ctx, stmt)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	defer preparedStmt.Close()
 
 	_, err = preparedStmt.ExecContext(ctx, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute statement: %w", err)
 	}
 	return nil
 }

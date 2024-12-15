@@ -21,7 +21,7 @@ func main() {
 	accRepository := repository.NewAccountRepository(dbConn)
 	log.Println("Account repository created")
 
-	appLogger := &logger.ConsoleLogger{}
+	appLogger := logger.NewConsoleLogger()
 	getAccountUsecase := usecase.NewAccountUseCase(accRepository, appLogger)
 	log.Println("Get account use case created")
 	signupUsecase := usecase.NewSignupUseCase(accRepository, appLogger)

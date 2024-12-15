@@ -7,13 +7,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hpaes/go-api-project/src/core/domain"
+	"github.com/hpaes/go-api-project/src/core/domain/valueObjects"
 	"github.com/hpaes/go-api-project/src/infrastructure/database"
 	"github.com/hpaes/go-api-project/src/infrastructure/logger"
 	"github.com/hpaes/go-api-project/src/infrastructure/repository"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func setupGetAccount(t *testing.T) (*database.PqAdapter, *GetAccountUseCase, func()) {
+func setupGetAccount(t *testing.T) (*database.PqAdapter, GetAccount, func()) {
 	// setup db connection
 	dbConnection, err := database.NewPqAdapter()
 	if err != nil {
@@ -23,8 +25,7 @@ func setupGetAccount(t *testing.T) (*database.PqAdapter, *GetAccountUseCase, fun
 	accountRepository := repository.NewAccountRepository(dbConnection)
 
 	// create logger
-	logger := &logger.ConsoleLogger{}
-
+	logger := logger.NewConsoleLogger()
 	// create get account use case
 	getAccountUseCase := NewAccountUseCase(accountRepository, logger)
 
@@ -35,12 +36,13 @@ func setupGetAccount(t *testing.T) (*database.PqAdapter, *GetAccountUseCase, fun
 	return dbConnection, getAccountUseCase, cleanup
 }
 func TestGetAccount(t *testing.T) {
+	t.SkipNow()
 	dbConnection, getAccountUseCase, cleanup := setupGetAccount(t)
 	defer cleanup()
 
 	ctx := context.Background()
 
-	acc, err := domain.CreateAccount("John Doe", "123.456.789-09", "johnDoe@emai.com", "ABC-1B34", true, false)
+	acc, err := domain.NewAccount("", "John Doe", "123.456.789-09", "johnDoe@emai.com", "ABC-1B34", true, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, acc)
 
@@ -61,12 +63,47 @@ func TestGetAccount(t *testing.T) {
 }
 
 func TestGetAccountNotFound(t *testing.T) {
+	t.SkipNow()
 	_, getAccountUseCase, cleanup := setupGetAccount(t)
 	defer cleanup()
 
 	ctx := context.Background()
 
 	output, err := getAccountUseCase.Execute(ctx, uuid.New().String())
+	assert.NoError(t, err)
+	assert.Nil(t, output)
+}
+
+func TestGetAccountUsecaseWithMock(t *testing.T) {
+	r := repository.NewMockAccountRepository()
+	logger := logger.NewConsoleLogger()
+	uc := NewAccountUseCase(r, logger)
+
+	expectedOuput := &domain.Account{
+		AccountId:   "123",
+		Name:        valueObjects.Name{Value: "John Doe"},
+		Cpf:         valueObjects.Cpf{Value: "123.456.789-09"},
+		Email:       valueObjects.Email{Value: "johnDoe@email.com"},
+		CarPlate:    valueObjects.CarPlate{Value: "ABC-1B34"},
+		IsPassenger: true,
+		IsDriver:    false,
+	}
+
+	r.On("GetById", mock.Anything, mock.Anything).Return(expectedOuput, nil)
+	ctx := context.TODO()
+	output, err := uc.Execute(ctx, "123")
+	assert.NoError(t, err)
+	assert.NotNil(t, output)
+}
+
+func TestGetAccountUsecaseWithMockWhenAccountNotFound(t *testing.T) {
+	r := repository.NewMockAccountRepository()
+	logger := logger.NewConsoleLogger()
+	uc := NewAccountUseCase(r, logger)
+
+	r.On("GetById", mock.Anything, mock.Anything).Return(&domain.Account{}, nil)
+	ctx := context.TODO()
+	output, err := uc.Execute(ctx, "123")
 	assert.NoError(t, err)
 	assert.Nil(t, output)
 }
