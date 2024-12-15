@@ -111,7 +111,7 @@ func TestSignupUsecaseWithMockWhenAccountAlreadyExists(t *testing.T) {
 	logHandler := logger.NewConsoleLogger()
 	uc := NewSignupUseCase(r, logHandler)
 
-	errorMsg := "account already exists"
+	errorMsg := "Account with email johnDoe@email.com already exists"
 	r.On("GetByEmail", mock.Anything, mock.Anything).Return(&domain.Account{AccountId: uuid.NewString()}, nil)
 	r.On("Save", mock.Anything, mock.Anything).Return(fmt.Errorf(errorMsg))
 

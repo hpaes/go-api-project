@@ -48,7 +48,7 @@ func TestAccountController_Signup(t *testing.T) {
 
 	t.Run("should return 400 when request method is not POST", func(t *testing.T) {
 		mockLogger.On("LogInformation", "AccountController.Signup", mock.Anything).Once()
-		mockLogger.On("LogError", "Error occurred", mock.Anything).Once()
+		mockLogger.On("LogError", "Error occurred: Invalid HTTP method", mock.Anything).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/signup", nil)
 		rr := httptest.NewRecorder()
@@ -61,7 +61,7 @@ func TestAccountController_Signup(t *testing.T) {
 
 	t.Run("should return 400 when request payload is invalid", func(t *testing.T) {
 		mockLogger.On("LogInformation", "AccountController.Signup", mock.Anything).Once()
-		mockLogger.On("LogError", "Error occurred", mock.Anything).Once()
+		mockLogger.On("LogError", "Error occurred: Invalid request payload", mock.Anything).Once()
 		req, _ := http.NewRequest(http.MethodPost, "/signup", bytes.NewBuffer([]byte("invalid")))
 		rr := httptest.NewRecorder()
 
@@ -115,7 +115,7 @@ func TestAccountController_GetAccount(t *testing.T) {
 		controller = NewSignupController(mockSignUp, mockGetAccount, mockLogger)
 
 		mockLogger.On("LogInformation", "AccountController.GetAccount", mock.Anything).Once()
-		mockLogger.On("LogError", "Error occurred", mock.Anything).Once()
+		mockLogger.On("LogError", "Error occurred: Invalid HTTP method", mock.Anything).Once()
 
 		req, _ := http.NewRequest(http.MethodPost, "/account", nil)
 		rr := httptest.NewRecorder()
@@ -136,7 +136,7 @@ func TestAccountController_GetAccount(t *testing.T) {
 
 		mockGetAccount.On("Execute", mock.Anything, accountId).Return((*usecase.GetAccountOutput)(nil), nil)
 		mockLogger.On("LogInformation", "AccountController.GetAccount", mock.Anything).Once()
-		mockLogger.On("LogError", "Error occurred", mock.Anything).Once()
+		mockLogger.On("LogError", "Error occurred: Account not found", mock.Anything).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/account?account_id=123", nil)
 		rr := httptest.NewRecorder()
@@ -155,7 +155,7 @@ func TestAccountController_GetAccount(t *testing.T) {
 		controller = NewSignupController(mockSignUp, mockGetAccount, mockLogger)
 
 		mockLogger.On("LogInformation", "AccountController.GetAccount", mock.Anything).Once()
-		mockLogger.On("LogError", "Error occurred", mock.Anything).Once()
+		mockLogger.On("LogError", "Error occurred: Invalid query param", mock.Anything).Once()
 
 		req, _ := http.NewRequest(http.MethodGet, "/account", nil)
 		rr := httptest.NewRecorder()
